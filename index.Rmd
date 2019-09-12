@@ -1,0 +1,20 @@
+---
+title: "Tests on tfprobability"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Introduction
+
+Run some Tests on the Keras interface to tfprobability. 
+
+## Confidence Interval
+
+Compare confidence intervals to linear regression results, loess, and quantile random forest for very simple problem: 1-3 predictors with normal ditributed availability and linear/quadratic responce (plus some noise). Check which model generates which kind of confidence interval. Most important / key feature after experience with quantile randnom forest: for local models the confidence intervalls for extrapolation should get very wide.
+
+## Performance as compared to tensorflow
+
+Use some standard-problems (chose the ones from RStudio-Keras website) to benchmark tprobability vs tensorflow. Is it worth the additional effort?

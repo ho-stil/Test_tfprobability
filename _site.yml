@@ -1,0 +1,19 @@
+name: "Test tfprobability"
+navbar:
+  title: "Test tfprobability"
+  left:
+    - text: "Confidence intervals for simple problems"
+      menu:
+        - text: "Artificial Data"
+          href: ConfInt_01_arificial.html
+        - text: "Some reference data (cars?)"
+        - text: ""
+    - text: "Performance impact of tfprobability"
+      menu:
+        - text: "Regression-Problem"
+        - text: "Classification problem???"
+
+output:
+  html_document:
+    theme: cosmo
+    highlight: textmate
