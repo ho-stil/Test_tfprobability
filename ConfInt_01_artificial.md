@@ -1,0 +1,92 @@
+---
+title: "Confidence intervals in Machine Learning Models"
+output: html_document
+---
+
+# Generating confidence intervals
+
+Compare confidence intervals to linear regression results, loess, and quantile random forest for very simple problem: 1-3 predictors with normal distributed availability and linear/quadratic response (plus some noise). Check which model generates which kind of confidence interval. Most important / key feature after experience with quantile randnom forest: for local models the confidence intervalls for extrapolation should get very wide.
+
+Gaussian Process via GPflow is another candidate - which could be competitive to Keras-solution for model accuracy as well.
+
+# Generate artificial datasets
+
+To get some insight into the behavior of Error-Estrimates from Machine Learning Models I chose to generate artificcial datasets first. 
+
+
+## Noisy linear data
+
+
+
+## Gaussian for X and Y with interaction
+
+A frequent observation for the yield of a manufacturing process is that there's an optimum value for a process parameter and reaches zero yield with deviations from that value. This observation is simulated her by a (kind of) normal distribution to describe the decrease of the process yield for 2 parameters. To bring in interaction between the two parameters I have chosen a term $e^{-(X-Y)^{-2}}$ : the more X and Y differ the more the Yield is reduced. A constant noise term is added with an standard deviation of 0.2 - plus a factor 0.45 to keep the sum of the arguments below 1 for most inputs. The Yield-data is restricted to be within [0,1] (pmin and pmax) - as an yield >1 or <0 doesn't make much sense. However, this also limits the noise impact for 
+
+The frequency of input data in X and Y direction is given by a normal distribution - that means most data around (0,0). Thus the uncertainty should also be lowest around there. The heatmap of the artificial data is shown below the code to generate it.
+
+
+```r
+lExample <- 1E3
+set.seed(2019)
+DTdualGauss <- data.table(X = rnorm(lExample),
+                 Y = rnorm(lExample))
+DTdualGauss[, Z := pmin(1, pmax(0, 0.45*(2^(-X^2) + 2^(-Y^2) - 2^(-(Y-X)^(-2)) + rnorm(lExample, 0, 0.2))))]
+DTdualGauss.int <- with(DTdualGauss, akima::interp(X, Y, Z))
+pin_org <- par("pin")
+{
+  par(pin = c(3,3))
+  with(DTdualGauss.int, image(x, y, z))
+  par(pin = pin_org)
+}
+```
+
+![](ConfInt_01_artificial_files/figure-html/plot_dualGauss-1.png)<!-- -->
+
+In the heatmap the high values around (0,0) with some alongation in the x=y direction (the interaction chosen here) are visible by the darker red colors.
+
+## Quantile Regression Forest
+
+Tree-based methods like the classic random forest are well established. One of which is the Quantile Regression Forest - it generates not only predictions for the mean but you can use quantiles for the prediction.
+
+
+
+
+```r
+testData <- data.table(X = -50:50 / 10, Y = 0)
+testData[, Z_theor := pmin(1, pmax(0, 0.45*(2^(-X^2) + 2^(-Y^2) - 2^(-(Y-X)^(-2)))))]
+# Generate Quantile Regression Forest and predict 1st decile, median, and 9th decile
+QRF.DTdualGauss <- quantregForest(x=DTdualGauss[, list(X,Y)], y=DTdualGauss[, Z])
+testData[, Z_Dec1 := predict(QRF.DTdualGauss, testData[, 1:2], 0.1)]
+testData[, Z_med := predict(QRF.DTdualGauss, testData[, 1:2], 0.5)]
+testData[, Z_Dec9 := predict(QRF.DTdualGauss, testData[, 1:2], 0.9)]
+{ # Plot QuantRegForest-Output
+  plot(Z_theor~X, testData, ylim=c(0,1), type="l")
+  points(Z_med~X, testData)
+  with(testData, segments(X, Z_Dec1, X, Z_Dec9, col = gray(0.5)))
+  abline(v=c(min(DTdualGauss[round(5*(Y-mean(testData$Y)))==0, X]), max(DTdualGauss[round(5*(Y-mean(testData$Y)))==0, X])), lty="dashed")
+}
+```
+
+![](ConfInt_01_artificial_files/figure-html/plot_dualGaussModels-1.png)<!-- -->
+
+```r
+loess.DTdualGauss <- loess(Z~X+Y, DTdualGauss, span = 0.25)
+loess.pred.DTdualGauss <- predict(loess.DTdualGauss, testData[, 1:2], se = TRUE)
+testData$Z_loess <- loess.pred.DTdualGauss$fit
+# calculate limits for comparison: 2x StdError should be same order of magnitude as Decile
+testData$Z_loess_upper <- loess.pred.DTdualGauss$fit + 2*loess.pred.DTdualGauss$se.fit 
+testData$Z_loess_lower <- loess.pred.DTdualGauss$fit - 2*loess.pred.DTdualGauss$se.fit
+rm(loess.pred.DTdualGauss)
+{ # Plot Loess-Output
+  plot(Z_theor~X, testData, ylim=c(0,1), type="l")
+  points(Z_loess~X, testData)
+  with(testData, segments(X, Z_loess_lower, X, Z_loess_upper, col = gray(0.5)))
+  abline(v=c(min(DTdualGauss[round(5*(Y-mean(testData$Y)))==0, X]), max(DTdualGauss[round(5*(Y-mean(testData$Y)))==0, X])), lty="dashed")
+}
+```
+
+![](ConfInt_01_artificial_files/figure-html/plot_dualGaussModels-2.png)<!-- -->
+
+# Performance as compared to tensorflow
+
+Use some standard-problems (chose the ones from RStudio-Keras website) to benchmark tprobability vs tensorflow. Is it worth the additional effort?

@@ -3,9 +3,7 @@ title: "Tests on tfprobability"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-```
+
 
 # Introduction
 

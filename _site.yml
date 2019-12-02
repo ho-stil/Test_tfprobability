@@ -5,7 +5,7 @@ navbar:
     - text: "Confidence intervals for simple problems"
       menu:
         - text: "Artificial Data"
-          href: ConfInt_01_arificial.html
+          href: ConfInt_01_artificial.html
         - text: "Some reference data (cars?)"
         - text: ""
     - text: "Performance impact of tfprobability"
@@ -17,3 +17,4 @@ output:
   html_document:
     theme: cosmo
     highlight: textmate
+    keep_md: true
